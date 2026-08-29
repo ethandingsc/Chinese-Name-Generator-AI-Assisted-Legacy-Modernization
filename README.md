@@ -1,4 +1,4 @@
-# Limingtang Naming System
+# Chinese Name Generator — AI-Assisted Legacy Modernization
 
 A modern Chinese naming web application rebuilt from a legacy Python prototype through an AI-assisted development workflow.
 
