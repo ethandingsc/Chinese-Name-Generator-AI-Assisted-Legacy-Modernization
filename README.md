@@ -1,304 +1,55 @@
-# Chinese Name Generator — AI Naming Agent
+# Chinese Name Generation Agent
 
-An AI-assisted Chinese naming system evolving from a legacy rule-based application into a structured, explainable Agent architecture.
+**Modernizing a rule-based Chinese naming workflow with retrieval, LLM evaluation, and human review.**
 
-Next.js · React · TypeScript · Python · FastAPI · Hybrid RAG · CrossEncoder · DeepSeek
+[English](README.md) · [简体中文](README.zh-CN.md)
 
-## Overview
+> This repository is a **project showcase**. The implementation, private customer data, provider credentials, and runnable services are not published here. The system is an internal tool for professional naming specialists; parents do not operate it directly.
 
-This project modernizes a legacy Chinese naming system into an AI-powered naming Agent while preserving its validated traditional naming rules.
+## The problem
 
-The original Python/Streamlit prototype was first migrated to a maintainable Next.js + TypeScript application. The current phase extends the system with an independent Python Agent backend that combines deterministic naming rules, birth-chart analysis, retrieval-augmented generation (RAG), and LLM reasoning.
+A naming specialist used to collect a family's requirements, search character meanings and classical literature, and examine many combinations by hand. This takes time, and the result depends heavily on the specialist's literary knowledge and aesthetic judgment. The company's earlier software could apply birth-related rules, five-element preferences, stroke rules, character lists, and avoidance rules consistently. It could not interpret an open-ended wish or judge whether two individually meaningful characters make a natural name together.
 
-Instead of asking an LLM to generate names directly, the system separates **facts, constraints, retrieval, reasoning, and explanation** into different layers. Deterministic components handle rules that should remain stable, while the LLM is used where language understanding and flexible reasoning provide the most value.
+The goal of V1 is to **help specialists explore a large legal name space and review promising, personalized full names faster**. It does not replace their final judgment.
 
-The long-term goal is an interactive naming Agent that can understand traditional naming constraints, open-ended parental expectations, and multi-turn feedback while producing explainable name recommendations.
+## V1 architecture
 
-## System Evolution
+```mermaid
+flowchart TD
+    A["Naming specialist: family facts, wishes, preferences, avoidances"] --> B["Next.js interface and FastAPI orchestration"]
+    B --> C["P2: birth-data provider + deterministic legal name space"]
+    C --> D["P3: intent planning + semantic, cultural and creative discovery"]
+    D --> E["P4: source-blind whole-name review + quality and diversity selection"]
+    E --> F["Recommended names + P5 brief explanations"]
+    F -->|"click a name"| G["P5 on-demand deep reading"]
+    F -->|"specialist enters customer feedback"| D
+    E -->|"too few qualified names"| D
+```
 
-    Legacy Python / Streamlit Prototype
-                  ↓
-        Next.js + TypeScript
-                  ↓
-         Golden Test Validation
-                  ↓
-       Python FastAPI Backend
-                  ↓
-        Birth Chart Analysis
-                  ↓
-       NamingConditionSet
-                  ↓
-          Hybrid RAG
-                  ↓
-        Agent Reasoning
-                  ↓
-     Explainable Recommendations
+**P2 establishes what is allowed.** Birth information is obtained through a provider and checked before the deterministic naming rules construct the eligible name space. The LLM cannot change the birth facts, stroke counts, five-element constraints, or avoided characters. Proposed names are checked against the current family's legal pool before admission.
 
-## Architecture
+**P3 finds names worth reviewing.** An LLM turns the specialist's account of parental wishes into several search directions. BM25 ranks names by keyword matches against searchable name and character-meaning text. A local BGE embedding model ranks semantic proximity: the two character vectors are composed and compared with the query using cosine similarity. The two name-search lists are interleaved, not added into a single “name quality” score. Other routes search classical poetry, browse the legal pool beyond retrieval's top ranks, and explore new combinations. All routes are deduplicated and rechecked for eligibility.
 
-    User
-     │
-     ▼
-    Next.js / React Frontend
-     │
-     ▼
-    FastAPI Agent Backend
-     │
-     ├───────────────┐
-     ▼               ▼
-    Birth Chart    User Preferences
-    Tools
-     │               │
-     └───────┬───────┘
-             ▼
-      NamingConditionSet
-             │
-       ┌─────┴─────┐
-       ▼           ▼
-    Naming       Hybrid RAG
-    Engine       BM25 + Dense
-                   │
-                   ▼
-                RRF Fusion
-                   │
-                   ▼
-           CrossEncoder Rerank
-       │           │
-       └─────┬─────┘
-             ▼
-        Agent Reasoning
-             │
-          DeepSeek
-             │
-             ▼
-      Candidate Ranking
-             │
-             ▼
-    Explainable Recommendations
+**P4 decides which full names merit recommendation.** Retrieval relevance is only a lead. The LLM reviews the surname and two-character given name together, without seeing P3's retrieval score, creative story, or poetry citation. Its prompt asks about pronunciation and homophones, naturalness, coherent imagery, fit with explicit wishes, aesthetic quality, and negative associations. It returns structured 0–2 judgments; code applies non-compensable quality gates before ranking the survivors. The base ranking score is `2 × naturalness + 2 × intent fit + aesthetic` when a wish was provided; without a wish, intent fit is omitted. Repeated characters and similar style tags are discounted during final selection. This is a prompted model judgment plus deterministic filtering, **not a measured probability that a family will like a name**.
 
-## What I Built
+**P5 explains selected names.** Brief explanations accompany the recommendations. A longer, personalized reading is generated only when the specialist clicks a name. It can draw on family context and vetted cultural evidence, but it cannot invent a poem, source, or birth-chart conclusion.
 
-- Migrated the legacy Python/Streamlit naming application to Next.js + TypeScript.
-- Preserved original naming behavior through **126 Golden Test cases** generated from the legacy implementation.
-- Built an independent **Python FastAPI Agent backend** and connected it with the existing Next.js application.
-- Added structured request/response schemas, configuration management, logging, and unified error handling.
-- Designed a structured **BirthChart → NamingConditionSet** pipeline for converting birth information into downstream naming constraints.
-- Separated deterministic traditional rules from LLM reasoning instead of allowing the model to rewrite validated business logic.
-- Added multi-provider birth-chart provenance and validation structures so provider disagreements can be recorded rather than silently resolved by an LLM.
-- Built a **Hybrid RAG pipeline** combining BM25 lexical retrieval and dense semantic retrieval.
-- Added **Reciprocal Rank Fusion (RRF)** and **CrossEncoder reranking** for higher-quality evidence retrieval.
-- Preserved retrieval provenance including BM25, dense, RRF, and reranking scores/ranks.
-- Integrated **DeepSeek** as the LLM layer while keeping model access isolated from deterministic naming components.
-- Designed the next Agent layer around multi-constraint reasoning, parental expectations, and iterative user feedback.
+The specialist can enter customer feedback for another round. Hard birth and naming constraints stay fixed; soft preferences can change, and previously shown or disliked names are excluded. If too few names pass P4, a bounded additional P3 exploration can run. V1 is therefore an **agentic workflow with limited tool choice and feedback**, orchestrated by one service rather than a deployed multi-agent system.
 
-## Agent Design
+## Why the design evolved
 
-The system follows one central principle:
+An early idea was to ask an LLM to interpret every possible two-character name in advance. With roughly a million theoretical combinations, extrapolating a small pilot's token usage yielded an estimate of about **794 million tokens** for that proposed approach. That was a planning estimate, **not V1's actual consumption**. It also would not eliminate review and semantic-quality problems. V1 instead reuses offline character-level semantic assets and local retrieval, then pays for whole-name LLM evaluation only on a bounded candidate list.
 
-> **Use deterministic code for facts and hard constraints; use the LLM for language understanding, preference interpretation, reasoning, and explanation.**
+Retrieval experiments exposed the next limitation: a relevant character or poem does not make the complete name natural. This led to P3's broad candidate discovery followed by P4's independent full-name assessment. Poetry was also tightened from a plausible cultural lead into a checkable evidence path: the two given-name characters must appear contiguously in the source text, and a later context review determines whether an actual citation may be shown. A literal occurrence alone is not proof of a suitable naming origin.
 
-The LLM does not independently calculate or overwrite birth-chart facts, stroke counts, or validated naming rules.
+## Engineering and reliability
 
-Instead, information flows through structured layers:
+The private implementation uses **Next.js, React, TypeScript, FastAPI, Pydantic, Python, local BM25/BGE retrieval, and DeepSeek**. The legacy deterministic behavior is protected by 126 golden cases. Python and Vitest tests, schema validation, provider boundaries, bounded retries, a shared token/cost budget, versioned caches, session persistence, and failure isolation support the workflow. Docker Compose and GitHub Actions CI are configured for the implementation, alongside a Windows BAT launch path. This showcase repository contains documentation only, so those services and CI jobs cannot be run from here.
 
-    Birth Information
-          ↓
-      BirthChart
-          ↓
-    NamingConditionSet
-          ↓
-    Hard Constraints
-      +
-    Soft Preferences
-          ↓
-      RAG Evidence
-          ↓
-     LLM Reasoning
-          ↓
-    Candidate Ranking
-          ↓
-      Explanation
+**Current limits:** Local functional and controlled end-to-end checks establish that the workflow runs; they do not establish expert-level naming quality or a measured productivity gain. Whole-name aesthetics remain subjective, retrieval can miss good names, provider availability matters, and the system has no public production deployment or multi-user security boundary.
 
-This architecture makes the system more controllable, testable, and explainable than direct LLM name generation.
+## Next direction: modular exploration (planned)
 
-## Hybrid RAG
+The proposed V2 would evaluate four focused exploration modules: **poetry and cultural evidence**, **geographic culture**, **time and significant events**, and **open creative naming**. Each would contribute a small set of candidate directions and reusable, clearly labeled evidence or associations. Their outputs would still be checked against P2 and reviewed by P4; trustworthy context could also support P5's on-demand readings. Geography must distinguish birth place from family hometown, and historical claims require sources. Modules would have separate time and cost limits and isolated failures.
 
-The retrieval layer uses a two-stage retrieval and reranking pipeline:
-
-    Agent Query
-        │
-        ├── BM25 Retrieval ─── Top 50
-        │
-        └── Dense Retrieval ── Top 50
-                    │
-                    ▼
-                RRF Fusion
-                  k = 60
-                    │
-                  Top 30
-                    │
-                    ▼
-          CrossEncoder Reranker
-                    │
-                  Top 5
-                    │
-                    ▼
-            Final RAG Evidence
-
-Current reranker:
-
-`BAAI/bge-reranker-v2-m3`
-
-The retrieval trace preserves:
-
-- source / chunk provenance
-- BM25 score and rank
-- dense similarity score and rank
-- RRF score and rank
-- CrossEncoder score and final rank
-
-This provides an auditable path from the original query to the evidence ultimately supplied to the Agent.
-
-## Naming Conditions
-
-Instead of passing loosely structured text between components, the system uses a structured `NamingConditionSet`.
-
-Conceptually:
-
-    NamingConditionSet
-    ├── Birth-chart-derived conditions
-    ├── Five-element preferences / constraints
-    ├── Stroke and naming-rule constraints
-    ├── Family / generational character requirements
-    ├── Character avoidance rules
-    ├── Parent preferences
-    ├── Desired meaning and expectations
-    └── Provenance / validation metadata
-
-Different conditions are not automatically treated as equally important.
-
-For example, a required generational character may conflict with an ideal five-element combination. The Agent should preserve the hard family requirement while optimizing the remaining character and other naming dimensions around it.
-
-## Multi-Turn Agent
-
-The target Agent is designed for iterative naming rather than one-shot generation.
-
-    Initial Conditions
-          ↓
-    Generate / Rank Candidates
-          ↓
-       User Feedback
-          ↓
-    Preference Extraction
-          ↓
-    Update Conditions / Weights
-          ↓
-    Re-rank / Generate Again
-          ↓
-         Repeat
-
-Later turns therefore do not simply rerun the initial request with identical weights.
-
-The LLM can interpret open-ended preferences such as:
-
-- academic or intellectual expectations
-- career and achievement aspirations
-- prosperity or success-related meanings
-- personality and temperament
-- literary or classical style
-- modern vs. traditional style
-- preferred or disliked characters
-- pronunciation and rhythm preferences
-- family-specific requirements
-- other free-form parental expectations
-
-These preferences can then be converted into structured signals for downstream candidate generation and ranking.
-
-## Explainability
-
-The final system is designed to explain why each recommended name fits the user's conditions.
-
-The explanation layer can combine:
-
-    Birth-Chart Conditions
-              +
-    Traditional Naming Rules
-              +
-    Five-Element Contribution
-              +
-    Family Requirements
-              +
-    Semantic Meaning
-              +
-    Parent Expectations
-              +
-    Retrieved Evidence
-              ↓
-      Final Name Explanation
-
-Intermediate traces can also record how individual candidates satisfy, conflict with, or compensate for different naming conditions.
-
-## Engineering Principles
-
-- **Deterministic core first** — validated naming rules remain outside the LLM.
-- **LLM where language matters** — preference understanding, semantic reasoning, interaction, and explanation.
-- **Structured contracts** — components communicate through explicit schemas instead of uncontrolled prompts.
-- **Traceability** — retrieval and reasoning inputs preserve provenance.
-- **Multi-turn adaptation** — later user feedback can change subsequent ranking behavior.
-- **Regression safety** — legacy behavior remains protected by Golden Tests.
-- **Secret isolation** — external API credentials are loaded through environment variables and never committed.
-
-## Tech Stack
-
-| Layer | Stack |
-| --- | --- |
-| Frontend | Next.js · React · TypeScript · Tailwind CSS |
-| Agent Backend | Python · FastAPI · Pydantic |
-| LLM | DeepSeek |
-| Retrieval | BM25 · Dense Retrieval |
-| Fusion | Reciprocal Rank Fusion (RRF) |
-| Reranking | BAAI/bge-reranker-v2-m3 |
-| Naming Logic | Legacy deterministic naming engine |
-| Testing | Pytest · Vitest · Golden Tests |
-| Data | Structured local datasets + RAG corpus |
-
-## Current Status
-
-Completed foundations include:
-
-- Legacy Python → Next.js / TypeScript migration
-- Golden-test protection of the original naming engine
-- FastAPI Agent backend
-- Next.js ↔ Python communication
-- Birth-chart data contracts and tooling
-- `NamingConditionSet` aggregation
-- Provider provenance and validation handling
-- Hybrid BM25 + Dense retrieval
-- RRF fusion
-- CrossEncoder reranking
-- Retrieval benchmarking and traceability
-- DeepSeek API configuration
-
-The project is now moving into the **Agent reasoning and orchestration layer**, where structured traditional constraints, retrieved evidence, parental expectations, and multi-turn feedback will be combined to produce ranked and explainable name recommendations.
-
-## Project Goal
-
-The target architecture is not:
-
-    Prompt → LLM → Random Chinese Names
-
-Instead:
-
-    Structured Facts
-          +
-    Deterministic Rules
-          +
-    Retrieved Knowledge
-          +
-    Human Preferences
-          +
-    LLM Language Reasoning
-          ↓
-    Explainable Chinese Naming Agent
-
-The goal is to preserve the reliability of the original naming system while using modern LLM capabilities where they provide the most value: understanding users, interpreting nuanced preferences, reasoning across multiple constraints, and explaining why a name fits.
+This is **planned, not implemented in V1**. The decision to build it should depend on whether it finds additional legal, natural names that specialists actually value, at an acceptable cost and latency—not on the number of agents.
