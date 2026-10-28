@@ -1,55 +1,67 @@
 # Chinese Name Generation Agent
 
-**Modernizing a rule-based Chinese naming workflow with retrieval, LLM evaluation, and human review.**
+**AI-assisted legacy modernization with deterministic rules, local retrieval, and bounded multi-agent exploration.**
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-> This repository is a **project showcase**. The implementation, private customer data, provider credentials, and runnable services are not published here. The system is an internal tool for professional naming specialists; parents do not operate it directly.
+## Project overview
 
-## The problem
+An internal tool helps professional naming specialists turn family preferences into personalized Chinese-name recommendations. The legacy engine enforces naming constraints but cannot interpret open-ended wishes or assess whether a complete name sounds natural. V2 preserves that deterministic boundary while adding retrieval, specialist exploration routes, and independent LLM review; a human retains final judgment.
 
-A naming specialist used to collect a family's requirements, search character meanings and classical literature, and examine many combinations by hand. This takes time, and the result depends heavily on the specialist's literary knowledge and aesthetic judgment. The company's earlier software could apply birth-related rules, five-element preferences, stroke rules, character lists, and avoidance rules consistently. It could not interpret an open-ended wish or judge whether two individually meaningful characters make a natural name together.
+## Engineering highlights
 
-The goal of V1 is to **help specialists explore a large legal name space and review promising, personalized full names faster**. It does not replace their final judgment.
+- **Multi-strategy retrieval:** BM25 and local BGE character-vector composition search the complete eligible name space. Available pair hints and verified text evidence add signals; Reciprocal Rank Fusion (RRF) combines ranks before bounded LLM selection.
+- **Bounded multi-agent execution:** Four routes share immutable family context and pool identity, with thread-based concurrency, locked budget reservations, stable merge order, and isolated failures.
+- **Separate eligibility, quality, and evidence:** P2 rechecks candidate IDs; source-blind P4 assesses complete names. Code separates hard rejection, ranking penalties, and restrictions on explanatory claims.
+- **Cost-aware selection:** Stage budgets, versioned caches, and at most one targeted supplement bound exploration. Final selection balances quality and diversity without fixed route quotas.
+- **Recoverable delivery:** Persisted events drive SSE progress. Recommendations are checkpointed before explanations, allowing explanation failures to preserve usable results with an explicit partial status.
 
-## V1 architecture
+## V2 system architecture
 
-```mermaid
-flowchart TD
-    A["Naming specialist: family facts, wishes, preferences, avoidances"] --> B["Next.js interface and FastAPI orchestration"]
-    B --> C["P2: birth-data provider + deterministic legal name space"]
-    C --> D["P3: intent planning + semantic, cultural and creative discovery"]
-    D --> E["P4: source-blind whole-name review + quality and diversity selection"]
-    E --> F["Recommended names + P5 brief explanations"]
-    F -->|"click a name"| G["P5 on-demand deep reading"]
-    F -->|"specialist enters customer feedback"| D
-    E -->|"too few qualified names"| D
-```
+![V2 system architecture](<assets/High-Level Architecture.png>)
 
-**P2 establishes what is allowed.** Birth information is obtained through a provider and checked before the deterministic naming rules construct the eligible name space. The LLM cannot change the birth facts, stroke counts, five-element constraints, or avoided characters. Proposed names are checked against the current family's legal pool before admission.
+The deterministic engine establishes eligibility; applicable exploration routes use local retrieval before independent whole-name review and portfolio selection. Recommendations are saved before explanation generation. Retrieval scores guide discovery, never substitute for whole-name quality.
 
-**P3 finds names worth reviewing.** An LLM turns the specialist's account of parental wishes into several search directions. BM25 ranks names by keyword matches against searchable name and character-meaning text. A local BGE embedding model ranks semantic proximity: the two character vectors are composed and compared with the query using cosine similarity. The two name-search lists are interleaved, not added into a single “name quality” score. Other routes search classical poetry, browse the legal pool beyond retrieval's top ranks, and explore new combinations. All routes are deduplicated and rechecked for eligibility.
+| Route | Responsibility and evidence boundary |
+| --- | --- |
+| Poetry | Local corpus search; distinguish exact contiguous text evidence from broader imagery. A match alone does not establish a suitable naming origin. |
+| Regional | Explore supplied birthplace, hometown, or family background without conflating them. Unverified associations remain labeled imagery. |
+| Time | Explore natural time imagery from supplied date/time; specific events require evidence. |
+| Creative | Explore coherent, modern complete names within the eligible pool; creative interpretations do not become historical facts. |
 
-**P4 decides which full names merit recommendation.** Retrieval relevance is only a lead. The LLM reviews the surname and two-character given name together, without seeing P3's retrieval score, creative story, or poetry citation. Its prompt asks about pronunciation and homophones, naturalness, coherent imagery, fit with explicit wishes, aesthetic quality, and negative associations. It returns structured 0–2 judgments; code applies non-compensable quality gates before ranking the survivors. The base ranking score is `2 × naturalness + 2 × intent fit + aesthetic` when a wish was provided; without a wish, intent fit is omitted. Repeated characters and similar style tags are discounted during final selection. This is a prompted model judgment plus deterministic filtering, **not a measured probability that a family will like a name**.
+Independent professional-review modules exist, but **the current Preview skips paid per-candidate professional review and reserves its quality budget for unified P4**; that optional stage is omitted above. P4 excludes retrieval scores and route narratives. The portfolio allocator selects up to 30 names, returning fewer when quality or budget is insufficient. P5 supplies brief explanations and on-demand deeper readings, distinguishing validated factual evidence from creative imagery.
 
-**P5 explains selected names.** Brief explanations accompany the recommendations. A longer, personalized reading is generated only when the specialist clicks a name. It can draw on family context and vetted cultural evidence, but it cannot invent a poem, source, or birth-chart conclusion.
+## Architecture evolution: V1 → V2
 
-The specialist can enter customer feedback for another round. Hard birth and naming constraints stay fixed; soft preferences can change, and previously shown or disliked names are excluded. If too few names pass P4, a bounded additional P3 exploration can run. V1 is therefore an **agentic workflow with limited tool choice and feedback**, orchestrated by one service rather than a deployed multi-agent system.
+| Concern | V1 | V2 |
+| --- | --- | --- |
+| Discovery | One service coordinates semantic, cultural, browsing, and creative tools | Four independently executable routes with shared context and explicit eligibility |
+| Retrieval | BM25 and composed semantic lists are interleaved | Full-pool multi-strategy ranking, RRF, bounded candidate windows |
+| Selection | Independent whole-name review and diversity filtering | Unified source-blind review, separate claim restrictions, dynamic portfolio allocation |
+| Recovery | Workflow budgets, caches, session persistence | Route isolation, stage checkpoints, persisted progress, recommendation preservation through P5 failures |
+| Migration | Established default workflow | Separate V2 Preview and storage; V1 remains the default entry |
 
-## Why the design evolved
+An earlier proposal to precompute every name's LLM interpretation gave way to reusable character-level assets and bounded whole-name evaluation. Composed character semantics remain retrieval clues, not verified whole-name definitions.
 
-An early idea was to ask an LLM to interpret every possible two-character name in advance. With roughly a million theoretical combinations, extrapolating a small pilot's token usage yielded an estimate of about **794 million tokens** for that proposed approach. That was a planning estimate, **not V1's actual consumption**. It also would not eliminate review and semantic-quality problems. V1 instead reuses offline character-level semantic assets and local retrieval, then pays for whole-name LLM evaluation only on a bounded candidate list.
+## Technology stack
 
-Retrieval experiments exposed the next limitation: a relevant character or poem does not make the complete name natural. This led to P3's broad candidate discovery followed by P4's independent full-name assessment. Poetry was also tightened from a plausible cultural lead into a checkable evidence path: the two given-name characters must appear contiguously in the source text, and a later context review determines whether an actual citation may be shown. A literal occurrence alone is not proof of a suitable naming origin.
+| Layer | Private implementation |
+| --- | --- |
+| Interface | Next.js, React, TypeScript, Tailwind CSS |
+| Backend | Python, FastAPI, Pydantic; standard-library thread pools and locks |
+| Retrieval / LLM | NumPy, local BM25, Sentence Transformers/BGE, RRF; DeepSeek through a budgeted structured-output adapter |
+| Storage / verification | Atomic versioned JSON, local caches; pytest, Vitest, Playwright, TypeScript checks; Docker Compose and GitHub Actions configuration |
 
-## Engineering and reliability
+## Evaluation & reliability
 
-The private implementation uses **Next.js, React, TypeScript, FastAPI, Pydantic, Python, local BM25/BGE retrieval, and DeepSeek**. The legacy deterministic behavior is protected by 126 golden cases. Python and Vitest tests, schema validation, provider boundaries, bounded retries, a shared token/cost budget, versioned caches, session persistence, and failure isolation support the workflow. Docker Compose and GitHub Actions CI are configured for the implementation, alongside a Windows BAT launch path. This showcase repository contains documentation only, so those services and CI jobs cannot be run from here.
+**Status — October 28, 2026:** V2 contracts, four routes, orchestration, unified P4/portfolio selection, and Preview/P5 are implemented. Historical D-1/D-2 offline reports record passing Python regressions, web tests, type checks, and builds. Those results describe earlier snapshots; subsequent retrieval, concurrency, and resilience changes still need consolidated final acceptance.
 
-**Current limits:** Local functional and controlled end-to-end checks establish that the workflow runs; they do not establish expert-level naming quality or a measured productivity gain. Whole-name aesthetics remain subjective, retrieval can miss good names, provider availability matters, and the system has no public production deployment or multi-user security boundary.
+Golden-case regressions protect legacy rule behavior. Current test sources also cover admission, bounded concurrency, budget reservation, cache scoping, partial failures, and checkpoint/result recovery. Journals block automatic replay of paid requests with unknown outcomes; session recovery does not guarantee arbitrary interrupted tasks can safely resume.
 
-## Next direction: modular exploration (planned)
+**Real naming quality remains pending.** The same-budget comparison of V1, an enhanced single-agent baseline, and V2 has not completed final acceptance. No measured productivity gain, quality superiority, or production throughput is claimed.
 
-The proposed V2 would evaluate four focused exploration modules: **poetry and cultural evidence**, **geographic culture**, **time and significant events**, and **open creative naming**. Each would contribute a small set of candidate directions and reusable, clearly labeled evidence or associations. Their outputs would still be checked against P2 and reviewed by P4; trustworthy context could also support P5's on-demand readings. Geography must distinguish birth place from family hometown, and historical claims require sources. Modules would have separate time and cost limits and isolated failures.
+Route parallelism operates within one naming job. Preview accepts one active job at a time; multi-user isolation, shared database/cache infrastructure, durable queue workers, and horizontal scaling remain planned.
 
-This is **planned, not implemented in V1**. The decision to build it should depend on whether it finds additional legal, natural names that specialists actually value, at an acceptable cost and latency—not on the number of agents.
+## Repository scope
+
+This is a **public engineering case study**, not a runnable distribution. Company source code, internal prompts, credentials, customer data, sensitive configuration, and private API contracts are excluded. Tests, services, deployment files, and CI described here belong to the private implementation.
