@@ -31,6 +31,19 @@ The deterministic engine establishes eligibility; applicable exploration routes 
 
 Independent professional-review modules exist, but **the current Preview skips paid per-candidate professional review and reserves its quality budget for unified P4**; that optional stage is omitted above. P4 excludes retrieval scores and route narratives. The portfolio allocator selects up to 30 names, returning fewer when quality or budget is insufficient. P5 supplies brief explanations and on-demand deeper readings, distinguishing validated factual evidence from creative imagery.
 
+
+## Frontend Showcase
+
+The V2 frontend provides a Chinese-inspired naming interface with structured birth information, personalized naming preferences, and optional family constraints.
+
+### Naming Interface
+
+![V2 Naming Interface](assets/v2-naming-interface.png)
+
+### Naming Preferences & Configuration
+
+![V2 Naming Preferences](assets/v2-naming-preferences.png)
+
 ## Architecture evolution: V1 → V2
 
 | Concern | V1 | V2 |
@@ -42,6 +55,7 @@ Independent professional-review modules exist, but **the current Preview skips p
 | Migration | Established default workflow | Separate V2 Preview and storage; V1 remains the default entry |
 
 An earlier proposal to precompute every name's LLM interpretation gave way to reusable character-level assets and bounded whole-name evaluation. Composed character semantics remain retrieval clues, not verified whole-name definitions.
+
 
 ## Technology stack
 
