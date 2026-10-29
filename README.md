@@ -34,7 +34,7 @@ Independent professional-review modules exist, but **the current Preview skips p
 
 ## Frontend Showcase
 
-The V2 frontend provides a Chinese-inspired naming interface with structured birth information, personalized naming preferences, and optional family constraints.
+The V2 system features a Chinese-language interface designed for Chinese name generation. The frontend combines traditional Chinese aesthetics with modern UI design, supporting structured birth information, personalized naming preferences, and family-specific constraints.
 
 ### Naming Interface
 
@@ -43,6 +43,41 @@ The V2 frontend provides a Chinese-inspired naming interface with structured bir
 ### Naming Preferences & Configuration
 
 ![V2 Naming Preferences](assets/v2-naming-preferences.png)
+
+### Naming Progress & Rule Information
+
+The progress view shows route status and candidate-discovery events. The rule panel summarizes birth information, provider verification status, and the deterministic eligibility conditions.
+
+![V2 naming workflow and route progress](assets/v2-naming-workflow.png)
+
+![V2 birth information and deterministic rule conditions](assets/v2-agent-execution.png)
+
+### Name Recommendations & Personalized Explanations
+
+Recommendation cards present character meanings, whole-name impressions, and pronunciation notes. Personalized explanations connect the suggested name to the family's wishes and aesthetic preferences.
+
+![V2 name recommendation cards](assets/v2-name-recommendations.png)
+
+### Initial Explanation & Deep Interpretation
+
+The same name is shown with its initial personalized explanation on the left and its on-demand deep interpretation on the right. The expanded reading discusses meaning, sound, writing, and family fit, while identifying when supporting source material is unavailable.
+
+<table>
+  <tr>
+    <th>Initial personalized explanation</th>
+    <th>On-demand deep interpretation</th>
+  </tr>
+  <tr>
+    <td valign="top"><img src="assets/v2-personalized-recommendation.png" alt="V2 initial personalized name explanation" width="340"></td>
+    <td valign="top"><img src="assets/v2-name-deep-interpretation.png" alt="V2 on-demand deep name interpretation" width="340"></td>
+  </tr>
+</table>
+
+### Candidate Screening & Execution Records
+
+The execution summary exposes candidate counts, route outcomes, timing, recorded costs, and partial failures for inspection. The values shown belong to this example run.
+
+![V2 candidate screening and agent execution records](assets/v2-rule-validation.png)
 
 ## Architecture evolution: V1 → V2
 

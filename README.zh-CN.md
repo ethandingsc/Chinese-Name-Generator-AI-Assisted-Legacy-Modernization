@@ -44,6 +44,41 @@ V2 提供融合中国传统文化美学与现代交互设计的智能取名界�
 
 ![V2 取名偏好与高级配置](assets/v2-naming-preferences.png)
 
+### 取名进度与规则信息
+
+进度面板展示各路探索状态与候选发现记录；规则面板汇总出生信息、命理服务的验证状态，以及确定性引擎采用的候选合法条件。
+
+![V2 取名流程与多路探索进度](assets/v2-naming-workflow.png)
+
+![V2 出生信息与确定性规则条件](assets/v2-agent-execution.png)
+
+### 姓名推荐与个性化解释
+
+推荐卡片展示单字含义、整名气质与读音说明，并结合家庭愿望和审美偏好，解释名字与用户期待之间的联系。
+
+![V2 姓名推荐卡片](assets/v2-name-recommendations.png)
+
+### 初步解释与深度解读
+
+以下展示同一个名字的两层解释：左侧为结合家庭愿望与审美偏好的初步解释，右侧为按需生成的深度解读，进一步讨论字义、音律、书写与家庭契合度；缺少可用出处材料时，会明确说明证据边界。
+
+<table>
+  <tr>
+    <th>初步个性化解释</th>
+    <th>按需生成深度解读</th>
+  </tr>
+  <tr>
+    <td valign="top"><img src="assets/v2-personalized-recommendation.png" alt="V2 姓名初步个性化解释" width="340"></td>
+    <td valign="top"><img src="assets/v2-name-deep-interpretation.png" alt="V2 按需生成的姓名深度解读" width="340"></td>
+  </tr>
+</table>
+
+### 候选筛选与执行记录
+
+执行摘要提供候选数量、各路状态、耗时、已记录费用及部分失败信息，便于检查实际运行情况。截图中的数值仅对应本次示例运行。
+
+![V2 候选筛选与 Agent 执行记录](assets/v2-rule-validation.png)
+
 ## 架构演进：V1 → V2
 
 | 设计问题 | V1 | V2 |
