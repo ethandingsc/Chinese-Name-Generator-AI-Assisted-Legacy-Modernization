@@ -18,7 +18,7 @@
 
 ## V2 系统架构
 
-![V2 system architecture](<assets/High-Level Architecture.png>)
+![V2 system architecture](<assets/High-Level ArchitectureCN.png>)
 
 确定性引擎建立合法候选池，适用的探索路线通过本地检索发现候选，再进入独立整名评审与组合选择；推荐结果先于解释生成保存。检索分只引导发现，不能替代完整姓名的质量判断。
 
